@@ -181,6 +181,17 @@ function setupEventListeners() {
       socket.emit('leave-game');
     }
   });
+
+  // Emoji reactions
+  $$('.reaction-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const emoji = btn.dataset.emoji;
+      socket.emit('reaction', { emoji });
+      showFloatingReaction(emoji, 'You');
+      btn.style.transform = 'scale(1.4)';
+      setTimeout(() => { btn.style.transform = ''; }, 200);
+    });
+  });
 }
 
 // ─── Game Selector (reusable) ───
@@ -190,6 +201,8 @@ function renderGameSelector(containerId) {
     <div class="game-card" data-game="trivia"><span class="game-icon">🧠</span><span class="game-name">Trivia Blitz</span></div>
     <div class="game-card" data-game="emoji"><span class="game-icon">🎯</span><span class="game-name">Emoji Decode</span></div>
     <div class="game-card" data-game="human-or-ai"><span class="game-icon">🤖</span><span class="game-name">Who Said It?</span></div>
+    <div class="game-card" data-game="scramble"><span class="game-icon">🔤</span><span class="game-name">Word Scramble</span></div>
+    <div class="game-card" data-game="odd-one-out"><span class="game-icon">🔍</span><span class="game-name">Odd One Out</span></div>
   `;
   container.addEventListener('click', (e) => {
     const card = e.target.closest('.game-card');
@@ -398,6 +411,11 @@ function setupSocketHandlers() {
     showToast('You left the game', 'info');
   });
 
+  // ── Emoji Reaction ──
+  socket.on('reaction', ({ name, avatar, emoji }) => {
+    showFloatingReaction(emoji, name);
+  });
+
   // ── Error ──
   socket.on('error-msg', ({ message }) => showToast(message, 'error'));
 
@@ -452,6 +470,12 @@ function renderQuestion(question) {
       break;
     case 'human-or-ai':
       renderHumanOrAiQuestion(area, question);
+      break;
+    case 'scramble':
+      renderScrambleQuestion(area, question);
+      break;
+    case 'odd-one-out':
+      renderOddOneOutQuestion(area, question);
       break;
   }
 }
@@ -534,6 +558,62 @@ function renderHumanOrAiQuestion(area, q) {
       area.querySelectorAll('.choice-btn').forEach(b => { b.disabled = true; });
       btn.classList.add('selected');
       socket.emit('submit-answer', { answer: btn.dataset.choice, timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ── Word Scramble ──
+function renderScrambleQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">Unscramble the word!</p>
+    <div class="scramble-letters">${q.scrambled.split('').map(l =>
+      `<span class="scramble-letter">${l}</span>`
+    ).join('')}</div>
+    <p class="emoji-hint">Hint: ${q.hint || '???'}</p>
+    <div class="emoji-input-wrapper">
+      <input type="text" class="emoji-input" id="scramble-answer" placeholder="Your answer..." autocomplete="off" spellcheck="false">
+      <button class="emoji-submit" id="scramble-submit-btn">Go!</button>
+    </div>
+  `;
+  const input = area.querySelector('#scramble-answer');
+  const btn = area.querySelector('#scramble-submit-btn');
+
+  function submit() {
+    if (state.hasAnswered) return;
+    const answer = input.value.trim();
+    if (!answer) return;
+    state.hasAnswered = true;
+    input.disabled = true;
+    btn.disabled = true;
+    socket.emit('submit-answer', { answer, timeLeft: state.timeLeft });
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  setTimeout(() => input.focus(), 100);
+}
+
+// ── Odd One Out ──
+function renderOddOneOutQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text">Which one doesn't belong?</p>
+    <div class="options-grid">
+      ${q.items.map((item, i) => `
+        <button class="option-btn odd-btn" data-index="${i}">
+          <span>${item}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  area.querySelectorAll('.odd-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.odd-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: Number(btn.dataset.index), timeLeft: state.timeLeft });
     });
   });
 }
@@ -628,6 +708,25 @@ function revealAnswer(data) {
     if (data.author) {
       area.insertAdjacentHTML('beforeend',
         `<div style="margin-top:0.75rem;font-size:0.95rem;color:var(--teal);font-weight:600">— ${data.author}</div>`
+      );
+    }
+  } else if (state.gameType === 'scramble') {
+    const wrapper = area.querySelector('.emoji-input-wrapper');
+    if (wrapper) {
+      wrapper.insertAdjacentHTML('afterend',
+        `<div style="margin-top:0.75rem;font-size:1.1rem;font-weight:700;color:var(--green)">Answer: ${data.correctAnswer}</div>`
+      );
+    }
+  } else if (state.gameType === 'odd-one-out') {
+    const btns = area.querySelectorAll('.odd-btn');
+    btns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === data.correctIndex) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+    if (data.explanation) {
+      area.insertAdjacentHTML('beforeend',
+        `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--teal);font-weight:600">${data.explanation}</div>`
       );
     }
   }
@@ -774,6 +873,17 @@ function launchConfetti() {
   }
 
   animate();
+}
+
+// ─── Floating Reactions ───
+function showFloatingReaction(emoji, name) {
+  const container = $('#floating-reactions');
+  const el = document.createElement('div');
+  el.className = 'floating-reaction';
+  el.innerHTML = `<span class="fr-emoji">${emoji}</span><span class="fr-name">${name}</span>`;
+  el.style.left = `${20 + Math.random() * 60}%`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
 }
 
 // ─── Show/Hide Game Sidebar Buttons ───

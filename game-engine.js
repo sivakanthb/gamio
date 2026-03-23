@@ -3,7 +3,7 @@
 // Handles game logic, scoring, answer checking
 // ============================================
 
-const { triviaQuestions, emojiPuzzles, humanOrAiQuotes, pickRandom } = require('./question-bank');
+const { triviaQuestions, emojiPuzzles, humanOrAiQuotes, wordScrambles, oddOneOut, pickRandom, shuffle } = require('./question-bank');
 
 const GAME_CONFIG = {
   trivia: {
@@ -30,6 +30,22 @@ const GAME_CONFIG = {
     basePoints: 100,
     speedBonus: 30,
   },
+  scramble: {
+    name: 'Word Scramble',
+    icon: '🔤',
+    questionsPerRound: 8,
+    timePerQuestion: 20,
+    basePoints: 120,
+    speedBonus: 60,
+  },
+  'odd-one-out': {
+    name: 'Odd One Out',
+    icon: '🔍',
+    questionsPerRound: 8,
+    timePerQuestion: 12,
+    basePoints: 100,
+    speedBonus: 40,
+  },
 };
 
 class GameEngine {
@@ -48,6 +64,12 @@ class GameEngine {
       case 'human-or-ai':
         questions = this._prepareHumanOrAiQuestions(config.questionsPerRound);
         break;
+      case 'scramble':
+        questions = this._prepareScrambleQuestions(config.questionsPerRound);
+        break;
+      case 'odd-one-out':
+        questions = this._prepareOddOneOutQuestions(config.questionsPerRound);
+        break;
     }
 
     return { gameType, config, questions };
@@ -61,6 +83,10 @@ class GameEngine {
         return this._fuzzyMatch(String(answer), question.answer);
       case 'human-or-ai':
         return answer === (question.isHuman ? 'human' : 'ai');
+      case 'scramble':
+        return this._fuzzyMatch(String(answer), question.word);
+      case 'odd-one-out':
+        return Number(answer) === question.oddIndex;
       default:
         return false;
     }
@@ -119,6 +145,33 @@ class GameEngine {
       author: q.author,
       isHuman: q.isHuman,
       timeLimit: GAME_CONFIG['human-or-ai'].timePerQuestion,
+    }));
+  }
+
+  _prepareScrambleQuestions(count) {
+    const selected = pickRandom(wordScrambles, count);
+    return selected.map(q => {
+      const letters = shuffle(q.word.split('')).join('');
+      return {
+        type: 'scramble',
+        scrambled: letters,
+        word: q.word,
+        hint: q.hint,
+        category: q.category,
+        timeLimit: GAME_CONFIG.scramble.timePerQuestion,
+      };
+    });
+  }
+
+  _prepareOddOneOutQuestions(count) {
+    const selected = pickRandom(oddOneOut, count);
+    return selected.map(q => ({
+      type: 'odd-one-out',
+      items: q.items,
+      oddIndex: q.oddIndex,
+      explanation: q.explanation,
+      category: q.category,
+      timeLimit: GAME_CONFIG['odd-one-out'].timePerQuestion,
     }));
   }
 

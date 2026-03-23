@@ -829,6 +829,78 @@ body {
   to   { opacity: 0; transform: translateY(-10px); }
 }
 
+/* ─── Word Scramble ─── */
+.scramble-letters {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeSlideIn 0.4s ease;
+}
+.scramble-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 56px;
+  background: var(--bg-surface);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-xs);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--yellow);
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+/* ─── Emoji Reactions Bar ─── */
+.reactions-bar {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  padding: 0.5rem;
+  margin-top: auto;
+}
+.reaction-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reaction-btn:hover { background: var(--bg-surface-hover); transform: scale(1.2); }
+.reaction-btn:active { transform: scale(0.9); }
+
+/* ─── Floating Reactions ─── */
+.floating-reactions {
+  position: fixed;
+  bottom: 80px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 150;
+}
+.floating-reaction {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: floatUp 2s ease forwards;
+}
+.fr-emoji { font-size: 2rem; }
+.fr-name { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-200px) scale(1.4); }
+}
+
 /* ─── Stop/Leave Game Buttons ─── */
 .btn-stop-game {
   margin-top: 1rem;
@@ -896,6 +968,9 @@ body {
   .mini-leaderboard { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
   .lb-entry { border-bottom: none; padding: 0.35rem 0.6rem; background: var(--bg-surface); border-radius: var(--radius-xs); white-space: nowrap; flex-shrink: 0; }
   .options-grid { grid-template-columns: 1fr; }
+  .scramble-letter { width: 40px; height: 48px; font-size: 1.25rem; }
+  .reactions-bar { gap: 0.25rem; }
+  .reaction-btn { width: 34px; height: 34px; font-size: 1rem; }
   .podium-bar { width: 70px; }
   .room-code { font-size: 2.2rem; }
   .players-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }

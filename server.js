@@ -262,6 +262,19 @@ io.on('connection', (socket) => {
     io.to(room.code).emit('game-reset', { players: getPlayersList(room) });
   });
 
+  // ── Emoji Reaction ──
+  socket.on('reaction', ({ emoji }) => {
+    const room = rooms.get(socket.roomCode);
+    if (!room) return;
+    const player = room.players.get(socket.id);
+    if (!player) return;
+    // Rate-limit: ignore if same player reacts within 500ms
+    const now = Date.now();
+    if (player._lastReaction && now - player._lastReaction < 500) return;
+    player._lastReaction = now;
+    socket.to(room.code).emit('reaction', { name: player.name, avatar: player.avatar, emoji });
+  });
+
   // ── Disconnect ──
   socket.on('disconnect', () => {
     const room = rooms.get(socket.roomCode);
@@ -303,6 +316,11 @@ function sanitizeQuestion(q) {
   } else if (safe.type === 'human-or-ai') {
     delete safe.isHuman;
     delete safe.author;
+  } else if (safe.type === 'scramble') {
+    delete safe.word;
+  } else if (safe.type === 'odd-one-out') {
+    delete safe.oddIndex;
+    delete safe.explanation;
   }
   return safe;
 }
@@ -330,6 +348,12 @@ function advanceQuestion(room) {
   } else if (currentQ.type === 'human-or-ai') {
     reveal.correctAnswer = currentQ.isHuman ? 'human' : 'ai';
     reveal.author = currentQ.author;
+  } else if (currentQ.type === 'scramble') {
+    reveal.correctAnswer = currentQ.word;
+  } else if (currentQ.type === 'odd-one-out') {
+    reveal.correctIndex = currentQ.oddIndex;
+    reveal.correctAnswer = currentQ.items[currentQ.oddIndex];
+    reveal.explanation = currentQ.explanation;
   }
 
   io.to(room.code).emit('question-result', reveal);

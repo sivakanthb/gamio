@@ -128,6 +128,66 @@ function shuffle(arr) {
   return a;
 }
 
+const wordScrambles = [
+  // ─── Animals ───
+  { word: 'ELEPHANT', hint: 'Largest land animal', category: 'Animals' },
+  { word: 'PENGUIN', hint: 'Tuxedo bird that can\'t fly', category: 'Animals' },
+  { word: 'GIRAFFE', hint: 'Tallest living animal', category: 'Animals' },
+  { word: 'DOLPHIN', hint: 'Smart ocean mammal', category: 'Animals' },
+  { word: 'CHAMELEON', hint: 'Color-changing reptile', category: 'Animals' },
+  { word: 'BUTTERFLY', hint: 'Caterpillar\'s glow-up', category: 'Animals' },
+  { word: 'CROCODILE', hint: 'Ancient swamp predator', category: 'Animals' },
+  { word: 'KANGAROO', hint: 'Pouched jumper from Australia', category: 'Animals' },
+
+  // ─── Food ───
+  { word: 'CHOCOLATE', hint: 'Sweet treat from cacao', category: 'Food' },
+  { word: 'SPAGHETTI', hint: 'Long Italian noodle', category: 'Food' },
+  { word: 'PINEAPPLE', hint: 'Tropical fruit with a crown', category: 'Food' },
+  { word: 'MUSHROOM', hint: 'Fungi you can eat', category: 'Food' },
+  { word: 'AVOCADO', hint: 'Green toast topping', category: 'Food' },
+  { word: 'PANCAKE', hint: 'Flat breakfast treat', category: 'Food' },
+  { word: 'BROCCOLI', hint: 'Tiny tree vegetable', category: 'Food' },
+  { word: 'CINNAMON', hint: 'Warm baking spice', category: 'Food' },
+
+  // ─── Technology ───
+  { word: 'ALGORITHM', hint: 'Step-by-step instructions', category: 'Technology' },
+  { word: 'BLUETOOTH', hint: 'Wireless connection named after a Viking', category: 'Technology' },
+  { word: 'DATABASE', hint: 'Organized data storage', category: 'Technology' },
+  { word: 'KEYBOARD', hint: 'You type on it', category: 'Technology' },
+  { word: 'SOFTWARE', hint: 'Programs on your computer', category: 'Technology' },
+  { word: 'INTERNET', hint: 'Global network of networks', category: 'Technology' },
+  { word: 'SATELLITE', hint: 'Orbiting space transmitter', category: 'Technology' },
+  { word: 'HOLOGRAM', hint: '3D light projection', category: 'Technology' },
+
+  // ─── Places ───
+  { word: 'AUSTRALIA', hint: 'Continent and country', category: 'Places' },
+  { word: 'PYRAMIDS', hint: 'Ancient Egyptian wonders', category: 'Places' },
+  { word: 'AMAZON', hint: 'Largest rainforest (or company)', category: 'Places' },
+  { word: 'VOLCANO', hint: 'Mountain that erupts', category: 'Places' },
+  { word: 'PARADISE', hint: 'A perfect place', category: 'Places' },
+  { word: 'UNIVERSE', hint: 'Everything that exists', category: 'Places' },
+];
+
+const oddOneOut = [
+  // ─── Categories ───
+  { items: ['Mars', 'Venus', 'Pluto', 'Jupiter'], oddIndex: 2, explanation: 'Pluto is a dwarf planet, not a planet', category: 'Science' },
+  { items: ['Python', 'Java', 'Cobra', 'JavaScript'], oddIndex: 2, explanation: 'Cobra is only a snake — the others are also programming languages', category: 'Technology' },
+  { items: ['Titanic', 'Avatar', 'Mona Lisa', 'Inception'], oddIndex: 2, explanation: 'Mona Lisa is a painting, not a movie', category: 'Entertainment' },
+  { items: ['Guitar', 'Piano', 'Violin', 'Paintbrush'], oddIndex: 3, explanation: 'Paintbrush is an art tool, not a musical instrument', category: 'Arts' },
+  { items: ['Bitcoin', 'Ethereum', 'Dollar', 'Dogecoin'], oddIndex: 2, explanation: 'Dollar is fiat currency, not cryptocurrency', category: 'Finance' },
+  { items: ['Oxygen', 'Helium', 'Water', 'Nitrogen'], oddIndex: 2, explanation: 'Water is a compound, not an element', category: 'Science' },
+  { items: ['Einstein', 'Newton', 'Shakespeare', 'Hawking'], oddIndex: 2, explanation: 'Shakespeare was a playwright, not a scientist', category: 'People' },
+  { items: ['Amazon', 'Nile', 'Sahara', 'Thames'], oddIndex: 2, explanation: 'Sahara is a desert, not a river', category: 'Geography' },
+  { items: ['Heart', 'Club', 'Diamond', 'Crown'], oddIndex: 3, explanation: 'Crown is not a playing card suit', category: 'Games' },
+  { items: ['Photoshop', 'Illustrator', 'Excel', 'InDesign'], oddIndex: 2, explanation: 'Excel is a spreadsheet app — the others are Adobe creative tools', category: 'Technology' },
+  { items: ['Sushi', 'Ramen', 'Tacos', 'Tempura'], oddIndex: 2, explanation: 'Tacos are Mexican — the others are Japanese', category: 'Food' },
+  { items: ['Mercury', 'Venus', 'Earth', 'Saturn'], oddIndex: 3, explanation: 'Saturn has rings — the others are inner/rocky planets', category: 'Science' },
+  { items: ['WhatsApp', 'Telegram', 'Photoshop', 'Signal'], oddIndex: 2, explanation: 'Photoshop is design software — the others are messaging apps', category: 'Technology' },
+  { items: ['Soccer', 'Basketball', 'Chess', 'Tennis'], oddIndex: 2, explanation: 'Chess is a board game, not a physical sport', category: 'Sports' },
+  { items: ['Spotify', 'Netflix', 'YouTube', 'Wikipedia'], oddIndex: 3, explanation: 'Wikipedia is an encyclopedia — the others are streaming services', category: 'Technology' },
+  { items: ['Rose', 'Tulip', 'Cactus', 'Daisy'], oddIndex: 2, explanation: 'Cactus is a succulent, not a flower', category: 'Nature' },
+];
+
 // Pick N random items from array
 function pickRandom(arr, n) {
   return shuffle(arr).slice(0, n);
@@ -137,6 +197,8 @@ module.exports = {
   triviaQuestions,
   emojiPuzzles,
   humanOrAiQuotes,
+  wordScrambles,
+  oddOneOut,
   shuffle,
   pickRandom,
 };
