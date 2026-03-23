@@ -61,9 +61,10 @@ body {
 
 /* ─── Typography ─── */
 .logo {
-  font-size: clamp(4rem, 12vw, 8rem);
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  font-family: 'Bangers', cursive;
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  font-weight: 400;
+  letter-spacing: 0.15em;
   background: linear-gradient(135deg, #6c5ce7 0%, #00cec9 40%, #fdcb6e 70%, #ff7675 100%);
   background-size: 200% 200%;
   animation: gradientShift 4s ease infinite;
@@ -216,7 +217,7 @@ body {
 }
 
 /* Logo glow */
-.hero { position: relative; text-align: center; margin: auto 0 0; padding-top: 4rem; }
+.hero { position: relative; text-align: center; margin: auto 0 0; padding-top: 1rem; }
 .logo-glow {
   position: absolute;
   top: 50%;
@@ -1191,9 +1192,9 @@ body {
 }
 
 @media (max-width: 480px) {
-  .logo { font-size: 3.5rem; }
+  .logo { font-size: 2.8rem; }
   .tagline { font-size: 1rem; }
-  .hero { padding-top: 2rem; }
+  .hero { padding-top: 0.5rem; }
   .features-strip { gap: 0.4rem; }
   .feature-chip { font-size: 0.7rem; padding: 0.35rem 0.7rem; }
   .game-preview-grid { grid-template-columns: repeat(3, 1fr); }
