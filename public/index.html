@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gamio — The Ultimate Party Game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ── HOME ── -->
+    <div id="screen-home" class="screen active">
+      <div class="container center-content">
+        <div class="logo-wrapper">
+          <h1 class="logo">GAMIO</h1>
+          <p class="tagline">The Ultimate Party Game</p>
+        </div>
+        <div class="home-buttons">
+          <button id="btn-create" class="btn btn-primary btn-large">
+            <span class="btn-icon-left">🎯</span> Create Room
+          </button>
+          <button id="btn-join" class="btn btn-secondary btn-large">
+            <span class="btn-icon-left">🚀</span> Join Room
+          </button>
+        </div>
+        <p class="home-footer">No login required. Just play!</p>
+      </div>
+    </div>
+
+    <!-- ── SETUP (name + avatar) ── -->
+    <div id="screen-setup" class="screen">
+      <div class="container center-content">
+        <button class="btn-back" id="btn-back">← Back</button>
+        <h2 class="section-title">Choose Your Persona</h2>
+        <div class="setup-form">
+          <div class="input-group">
+            <input type="text" id="input-name" class="input" placeholder="Your display name" maxlength="20" autocomplete="off" spellcheck="false">
+          </div>
+          <div id="join-code-group" class="input-group hidden">
+            <input type="text" id="input-code" class="input input-code" placeholder="Room Code" maxlength="4" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+          </div>
+          <p class="label">Pick your avatar</p>
+          <div id="avatar-grid" class="avatar-grid"></div>
+          <button id="btn-ready" class="btn btn-primary btn-large btn-full">Let's Go! 🎮</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOBBY ── -->
+    <div id="screen-lobby" class="screen">
+      <div class="container">
+        <div class="lobby-header">
+          <div class="room-code-box">
+            <span class="room-code-label">Share this code</span>
+            <div class="room-code-display">
+              <span id="room-code" class="room-code"></span>
+              <button id="btn-copy" class="btn-copy" title="Copy code">📋</button>
+            </div>
+          </div>
+        </div>
+        <div class="players-section">
+          <h3 class="players-title">Players <span id="player-count" class="badge">0</span></h3>
+          <div id="players-grid" class="players-grid"></div>
+        </div>
+        <div id="host-controls" class="host-controls hidden">
+          <h3 class="section-title">Choose a Game</h3>
+          <div id="game-selector" class="game-selector"></div>
+          <button id="btn-start-round" class="btn btn-primary btn-large btn-full" disabled>Select a game to start</button>
+        </div>
+        <div id="waiting-msg" class="waiting-msg hidden">
+          <div class="pulse-dot"></div>
+          <span>Waiting for host to start the game...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GAME ── -->
+    <div id="screen-game" class="screen">
+      <div class="game-layout">
+        <div class="game-main">
+          <div class="game-top-bar">
+            <div class="game-info">
+              <span id="game-type-badge" class="game-type-badge"></span>
+              <span id="round-badge" class="round-badge"></span>
+            </div>
+            <div class="timer-wrapper">
+              <svg class="timer-svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" class="timer-track"/>
+                <circle cx="50" cy="50" r="45" class="timer-progress" id="timer-circle"/>
+              </svg>
+              <span id="timer-text" class="timer-text">15</span>
+            </div>
+            <div class="question-progress">
+              <span id="q-counter" class="q-counter">1/8</span>
+              <span id="my-score" class="my-score">0 pts</span>
+            </div>
+          </div>
+
+          <div id="question-area" class="question-area"></div>
+          <div id="answer-feedback" class="answer-feedback hidden"></div>
+        </div>
+
+        <div class="game-sidebar">
+          <h4 class="sidebar-title">Leaderboard</h4>
+          <div id="mini-leaderboard" class="mini-leaderboard"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ROUND RESULTS ── -->
+    <div id="screen-results" class="screen">
+      <div class="container">
+        <h2 id="results-title" class="section-title">Round Complete!</h2>
+        <div id="podium" class="podium"></div>
+        <div id="results-leaderboard" class="results-leaderboard"></div>
+        <div id="host-results-controls" class="host-controls hidden">
+          <h3 class="section-title" style="margin-top:2rem">Next Game</h3>
+          <div id="results-game-selector" class="game-selector"></div>
+          <div class="results-actions">
+            <button id="btn-next-round" class="btn btn-primary btn-large" disabled>Start Next Round</button>
+            <button id="btn-end-game" class="btn btn-danger">End Game</button>
+          </div>
+        </div>
+        <div id="waiting-next" class="waiting-msg hidden">
+          <div class="pulse-dot"></div>
+          <span>Host is choosing the next game...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FINAL ── -->
+    <div id="screen-final" class="screen">
+      <canvas id="confetti-canvas"></canvas>
+      <div class="container center-content">
+        <h1 class="final-title">🏆 Game Over! 🏆</h1>
+        <div id="winner-display" class="winner-display"></div>
+        <div id="final-leaderboard" class="final-leaderboard"></div>
+        <div id="round-history" class="round-history"></div>
+        <div id="host-final-controls" class="hidden" style="margin-top:1.5rem">
+          <button id="btn-play-again" class="btn btn-primary btn-large btn-full">Play Again 🔄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TOASTS ── -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/client.js"></script>
+</body>
+</html>

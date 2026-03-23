@@ -1,0 +1,15 @@
+{
+  "name": "gamio",
+  "version": "1.0.0",
+  "description": "Gamio - The Ultimate Multiplayer Party Game Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5",
+    "dotenv": "^16.4.5"
+  }
+}

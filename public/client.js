@@ -1,0 +1,737 @@
+// ============================================
+// GAMIO — Client
+// Socket.IO + SPA game client
+// ============================================
+
+// ─── Avatars ───
+const AVATARS = [
+  { emoji: '🦊', name: 'Fox' },
+  { emoji: '🐸', name: 'Frog' },
+  { emoji: '🦄', name: 'Unicorn' },
+  { emoji: '🐙', name: 'Octopus' },
+  { emoji: '🦁', name: 'Lion' },
+  { emoji: '🐼', name: 'Panda' },
+  { emoji: '🦋', name: 'Butterfly' },
+  { emoji: '🐲', name: 'Dragon' },
+  { emoji: '🦉', name: 'Owl' },
+  { emoji: '🤖', name: 'Robot' },
+  { emoji: '🦈', name: 'Shark' },
+  { emoji: '🦜', name: 'Parrot' },
+  { emoji: '🐯', name: 'Tiger' },
+  { emoji: '🦩', name: 'Flamingo' },
+  { emoji: '🐺', name: 'Wolf' },
+  { emoji: '🎃', name: 'Pumpkin' },
+];
+
+// ─── State ───
+const state = {
+  mode: null,          // 'create' | 'join'
+  roomCode: null,
+  player: null,
+  players: [],
+  isHost: false,
+  // Game
+  gameType: null,
+  gameName: '',
+  gameIcon: '',
+  roundNumber: 0,
+  currentQuestion: null,
+  questionIndex: 0,
+  totalQuestions: 0,
+  hasAnswered: false,
+  myScore: 0,
+  myRoundScore: 0,
+  selectedAvatar: null,
+  selectedGame: null,
+  // Timer
+  timerInterval: null,
+  timeLeft: 0,
+  timeLimit: 15,
+  // Results
+  roundHistory: [],
+};
+
+// ─── Socket ───
+const socket = io();
+
+// ─── DOM Helpers ───
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// ─── Screen Management ───
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const screen = $(`#screen-${id}`);
+  if (screen) screen.classList.add('active');
+}
+
+// ─── Toast ───
+function showToast(message, type = 'info') {
+  const container = $('#toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3100);
+}
+
+// ─── Initialize ───
+function init() {
+  setupAvatarGrid();
+  setupEventListeners();
+  setupSocketHandlers();
+}
+
+// ─── Avatar Grid ───
+function setupAvatarGrid() {
+  const grid = $('#avatar-grid');
+  grid.innerHTML = AVATARS.map((a, i) =>
+    `<div class="avatar-option" data-index="${i}" title="${a.name}">${a.emoji}</div>`
+  ).join('');
+
+  grid.addEventListener('click', (e) => {
+    const opt = e.target.closest('.avatar-option');
+    if (!opt) return;
+    $$('.avatar-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    state.selectedAvatar = AVATARS[Number(opt.dataset.index)];
+  });
+}
+
+// ─── Event Listeners ───
+function setupEventListeners() {
+  // Home → Setup
+  $('#btn-create').addEventListener('click', () => {
+    state.mode = 'create';
+    $('#join-code-group').classList.add('hidden');
+    showScreen('setup');
+    $('#input-name').focus();
+  });
+
+  $('#btn-join').addEventListener('click', () => {
+    state.mode = 'join';
+    $('#join-code-group').classList.remove('hidden');
+    showScreen('setup');
+    $('#input-code').focus();
+  });
+
+  // Setup → Back
+  $('#btn-back').addEventListener('click', () => showScreen('home'));
+
+  // Ready
+  $('#btn-ready').addEventListener('click', () => {
+    const name = $('#input-name').value.trim();
+    if (!name) { showToast('Enter your name!', 'error'); $('#input-name').focus(); return; }
+    if (!state.selectedAvatar) { showToast('Pick an avatar!', 'error'); return; }
+
+    if (state.mode === 'create') {
+      socket.emit('create-room', { name, avatar: state.selectedAvatar.emoji });
+    } else {
+      const code = $('#input-code').value.trim().toUpperCase();
+      if (!code || code.length < 4) { showToast('Enter a 4-letter room code!', 'error'); $('#input-code').focus(); return; }
+      socket.emit('join-room', { code, name, avatar: state.selectedAvatar.emoji });
+    }
+  });
+
+  // Enter key on inputs
+  $('#input-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if (state.mode === 'join') { $('#input-code').focus(); }
+      else { $('#btn-ready').click(); }
+    }
+  });
+  $('#input-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btn-ready').click(); });
+
+  // Copy room code
+  $('#btn-copy').addEventListener('click', () => {
+    const code = state.roomCode;
+    if (code) {
+      navigator.clipboard.writeText(code).then(() => showToast('Code copied!', 'success'));
+    }
+  });
+
+  // Start round
+  $('#btn-start-round').addEventListener('click', () => {
+    if (!state.selectedGame) return;
+    socket.emit('start-round', { gameType: state.selectedGame });
+  });
+
+  // Next round (from results)
+  $('#btn-next-round').addEventListener('click', () => {
+    if (!state.selectedGame) { showToast('Pick a game first!', 'error'); return; }
+    socket.emit('start-round', { gameType: state.selectedGame });
+  });
+
+  // End game
+  $('#btn-end-game').addEventListener('click', () => socket.emit('end-game'));
+
+  // Play again
+  $('#btn-play-again').addEventListener('click', () => socket.emit('play-again'));
+}
+
+// ─── Game Selector (reusable) ───
+function renderGameSelector(containerId) {
+  const container = $(`#${containerId}`);
+  container.innerHTML = `
+    <div class="game-card" data-game="trivia"><span class="game-icon">🧠</span><span class="game-name">Trivia Blitz</span></div>
+    <div class="game-card" data-game="emoji"><span class="game-icon">🎯</span><span class="game-name">Emoji Decode</span></div>
+    <div class="game-card" data-game="human-or-ai"><span class="game-icon">🤖</span><span class="game-name">Who Said It?</span></div>
+  `;
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.game-card');
+    if (!card) return;
+    // Deselect all in BOTH selectors
+    $$('.game-card').forEach(c => c.classList.remove('selected'));
+    // Select this one AND its mirror
+    const game = card.dataset.game;
+    $$(`[data-game="${game}"]`).forEach(c => c.classList.add('selected'));
+    state.selectedGame = game;
+
+    // Enable start buttons
+    const startBtn = $('#btn-start-round');
+    const nextBtn = $('#btn-next-round');
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = `Start ${card.querySelector('.game-name').textContent}`; }
+    if (nextBtn) { nextBtn.disabled = false; nextBtn.textContent = `Start ${card.querySelector('.game-name').textContent}`; }
+  });
+}
+
+// ─── Socket Handlers ───
+function setupSocketHandlers() {
+  // ── Room Created ──
+  socket.on('room-created', ({ code, player, players }) => {
+    state.roomCode = code;
+    state.player = player;
+    state.players = players;
+    state.isHost = true;
+    state.myScore = 0;
+
+    $('#room-code').textContent = code;
+    renderPlayers(players);
+    showHostControls(true);
+    renderGameSelector('game-selector');
+    renderGameSelector('results-game-selector');
+    showScreen('lobby');
+    showToast('Room created!', 'success');
+  });
+
+  // ── Room Joined ──
+  socket.on('room-joined', ({ code, player, players }) => {
+    state.roomCode = code;
+    state.player = player;
+    state.players = players;
+    state.isHost = false;
+    state.myScore = 0;
+
+    $('#room-code').textContent = code;
+    renderPlayers(players);
+    showHostControls(false);
+    showScreen('lobby');
+    showToast(`Joined room ${code}!`, 'success');
+  });
+
+  // ── Player Joined ──
+  socket.on('player-joined', ({ player, players }) => {
+    state.players = players;
+    renderPlayers(players);
+    showToast(`${player.name} joined!`, 'info');
+  });
+
+  // ── Player Left ──
+  socket.on('player-left', ({ player, players }) => {
+    state.players = players;
+    renderPlayers(players);
+    if (player) showToast(`${player.name} left`, 'info');
+  });
+
+  // ── You Are Host ──
+  socket.on('you-are-host', () => {
+    state.isHost = true;
+    showHostControls(true);
+    renderGameSelector('game-selector');
+    renderGameSelector('results-game-selector');
+    showToast('You are now the host! 👑', 'success');
+  });
+
+  // ── Round Start ──
+  socket.on('round-start', (data) => {
+    state.gameType = data.gameType;
+    state.gameName = data.gameName;
+    state.gameIcon = data.gameIcon;
+    state.roundNumber = data.roundNumber;
+    state.questionIndex = data.questionIndex;
+    state.totalQuestions = data.totalQuestions;
+    state.currentQuestion = data.question;
+    state.hasAnswered = false;
+    state.myRoundScore = 0;
+
+    $('#game-type-badge').textContent = `${data.gameIcon} ${data.gameName}`;
+    $('#round-badge').textContent = `Round ${data.roundNumber}`;
+    $('#q-counter').textContent = `${data.questionIndex + 1}/${data.totalQuestions}`;
+    $('#my-score').textContent = `${state.myScore} pts`;
+
+    renderQuestion(data.question);
+    startTimer(data.timeLimit);
+    showScreen('game');
+  });
+
+  // ── Next Question ──
+  socket.on('next-question', (data) => {
+    state.questionIndex = data.questionIndex;
+    state.totalQuestions = data.totalQuestions;
+    state.currentQuestion = data.question;
+    state.hasAnswered = false;
+
+    $('#q-counter').textContent = `${data.questionIndex + 1}/${data.totalQuestions}`;
+    renderQuestion(data.question);
+    startTimer(data.timeLimit);
+  });
+
+  // ── Answer Result ──
+  socket.on('answer-result', ({ isCorrect, points, totalScore, roundScore }) => {
+    state.myScore = totalScore;
+    state.myRoundScore = roundScore;
+    $('#my-score').textContent = `${totalScore} pts`;
+    showAnswerFeedback(isCorrect, points);
+  });
+
+  // ── Question Result (correct answer reveal) ──
+  socket.on('question-result', (data) => {
+    stopTimer();
+    revealAnswer(data);
+  });
+
+  // ── Leaderboard Update ──
+  socket.on('leaderboard-update', ({ leaderboard }) => {
+    renderMiniLeaderboard(leaderboard);
+  });
+
+  // ── Round End ──
+  socket.on('round-end', ({ roundNumber, scores, roundHistory }) => {
+    state.roundHistory = roundHistory;
+    stopTimer();
+    renderRoundResults(scores, roundNumber);
+    if (state.isHost) {
+      $('#host-results-controls').classList.remove('hidden');
+      $('#waiting-next').classList.add('hidden');
+      renderGameSelector('results-game-selector');
+      state.selectedGame = null;
+      $('#btn-next-round').disabled = true;
+      $('#btn-next-round').textContent = 'Select a game first';
+    } else {
+      $('#host-results-controls').classList.add('hidden');
+      $('#waiting-next').classList.remove('hidden');
+    }
+    showScreen('results');
+  });
+
+  // ── Game Over ──
+  socket.on('game-over', ({ finalScores, roundHistory, totalRounds }) => {
+    stopTimer();
+    renderFinalResults(finalScores, roundHistory, totalRounds);
+    if (state.isHost) {
+      $('#host-final-controls').classList.remove('hidden');
+    } else {
+      $('#host-final-controls').classList.add('hidden');
+    }
+    showScreen('final');
+    launchConfetti();
+  });
+
+  // ── Game Reset (Play Again) ──
+  socket.on('game-reset', ({ players }) => {
+    state.players = players;
+    state.myScore = 0;
+    state.myRoundScore = 0;
+    state.roundNumber = 0;
+    state.roundHistory = [];
+    state.selectedGame = null;
+
+    renderPlayers(players);
+    showHostControls(state.isHost);
+    if (state.isHost) {
+      renderGameSelector('game-selector');
+      $('#btn-start-round').disabled = true;
+      $('#btn-start-round').textContent = 'Select a game to start';
+    }
+    showScreen('lobby');
+    showToast('New game! Scores reset.', 'success');
+  });
+
+  // ── Returned to Lobby ──
+  socket.on('returned-to-lobby', ({ players }) => {
+    state.players = players;
+    renderPlayers(players);
+    showHostControls(state.isHost);
+    if (state.isHost) {
+      renderGameSelector('game-selector');
+    }
+    showScreen('lobby');
+  });
+
+  // ── Error ──
+  socket.on('error-msg', ({ message }) => showToast(message, 'error'));
+}
+
+// ─── Render Players Grid ───
+function renderPlayers(players) {
+  const grid = $('#players-grid');
+  grid.innerHTML = players.map(p =>
+    `<div class="player-card ${p.isHost ? 'is-host' : ''}">
+      <span class="player-avatar">${p.avatar}</span>
+      <span class="player-name">${p.name}</span>
+    </div>`
+  ).join('');
+  $('#player-count').textContent = players.length;
+}
+
+function showHostControls(isHost) {
+  if (isHost) {
+    $('#host-controls').classList.remove('hidden');
+    $('#waiting-msg').classList.add('hidden');
+  } else {
+    $('#host-controls').classList.add('hidden');
+    $('#waiting-msg').classList.remove('hidden');
+  }
+}
+
+// ─── Render Question (dispatches by type) ───
+function renderQuestion(question) {
+  const area = $('#question-area');
+  area.innerHTML = '';
+  state.hasAnswered = false;
+
+  switch (question.type) {
+    case 'trivia':
+      renderTriviaQuestion(area, question);
+      break;
+    case 'emoji':
+      renderEmojiQuestion(area, question);
+      break;
+    case 'human-or-ai':
+      renderHumanOrAiQuestion(area, question);
+      break;
+  }
+}
+
+// ── Trivia ──
+function renderTriviaQuestion(area, q) {
+  const letters = ['A', 'B', 'C', 'D'];
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text">${q.question}</p>
+    <div class="options-grid">
+      ${q.options.map((opt, i) => `
+        <button class="option-btn" data-index="${i}">
+          <span class="option-letter">${letters[i]}</span>
+          <span>${opt}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  area.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: Number(btn.dataset.index), timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ── Emoji Decode ──
+function renderEmojiQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <div class="emoji-display">${q.emojis}</div>
+    <p class="emoji-hint">Hint: ${q.hint || '???'}</p>
+    <div class="emoji-input-wrapper">
+      <input type="text" class="emoji-input" id="emoji-answer" placeholder="Your answer..." autocomplete="off" spellcheck="false">
+      <button class="emoji-submit" id="emoji-submit-btn">Go!</button>
+    </div>
+  `;
+  const input = area.querySelector('#emoji-answer');
+  const btn = area.querySelector('#emoji-submit-btn');
+
+  function submit() {
+    if (state.hasAnswered) return;
+    const answer = input.value.trim();
+    if (!answer) return;
+    state.hasAnswered = true;
+    input.disabled = true;
+    btn.disabled = true;
+    socket.emit('submit-answer', { answer, timeLeft: state.timeLeft });
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  setTimeout(() => input.focus(), 100);
+}
+
+// ── Human or AI ──
+function renderHumanOrAiQuestion(area, q) {
+  area.innerHTML = `
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">Who said this?</p>
+    <div class="quote-text">${q.text}</div>
+    <div class="choice-buttons">
+      <button class="choice-btn" data-choice="human">
+        <span class="choice-icon">🧑</span>
+        <span class="choice-label">Human</span>
+      </button>
+      <button class="choice-btn" data-choice="ai">
+        <span class="choice-icon">🤖</span>
+        <span class="choice-label">AI</span>
+      </button>
+    </div>
+  `;
+  area.querySelectorAll('.choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.choice-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: btn.dataset.choice, timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ─── Timer ───
+function startTimer(seconds) {
+  stopTimer();
+  state.timeLeft = seconds;
+  state.timeLimit = seconds;
+
+  const circle = $('#timer-circle');
+  const text = $('#timer-text');
+  const circumference = 2 * Math.PI * 45; // r=45
+
+  circle.style.strokeDasharray = circumference;
+  circle.style.strokeDashoffset = '0';
+  circle.classList.remove('warning', 'danger');
+  text.textContent = seconds;
+
+  state.timerInterval = setInterval(() => {
+    state.timeLeft -= 1;
+    if (state.timeLeft < 0) state.timeLeft = 0;
+
+    text.textContent = state.timeLeft;
+    const progress = 1 - (state.timeLeft / state.timeLimit);
+    circle.style.strokeDashoffset = circumference * progress;
+
+    // Color changes
+    circle.classList.remove('warning', 'danger');
+    if (state.timeLeft <= 3) circle.classList.add('danger');
+    else if (state.timeLeft <= 5) circle.classList.add('warning');
+
+    if (state.timeLeft <= 0) {
+      stopTimer();
+      // Auto-submit empty if not answered
+      if (!state.hasAnswered) {
+        state.hasAnswered = true;
+        socket.emit('submit-answer', { answer: null, timeLeft: 0 });
+      }
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+}
+
+// ─── Answer Feedback ───
+function showAnswerFeedback(isCorrect, points) {
+  const fb = $('#answer-feedback');
+  fb.classList.remove('hidden');
+  fb.innerHTML = `
+    <div class="${isCorrect ? 'fb-correct' : 'fb-wrong'}" style="text-align:center">
+      <div style="font-size:3.5rem">${isCorrect ? '✅' : '❌'}</div>
+      <div class="fb-points" style="color: ${isCorrect ? 'var(--green)' : 'var(--coral)'}; font-size:1.3rem; font-weight:800; margin-top:0.25rem">
+        ${isCorrect ? `+${points} pts` : 'Wrong!'}
+      </div>
+    </div>
+  `;
+  setTimeout(() => fb.classList.add('hidden'), 1800);
+}
+
+// ─── Reveal Answer ───
+function revealAnswer(data) {
+  const area = $('#question-area');
+
+  if (state.gameType === 'trivia' && data.correctIndex !== undefined) {
+    const btns = area.querySelectorAll('.option-btn');
+    btns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === data.correctIndex) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+  } else if (state.gameType === 'emoji') {
+    const wrapper = area.querySelector('.emoji-input-wrapper');
+    if (wrapper) {
+      wrapper.insertAdjacentHTML('afterend',
+        `<div style="margin-top:0.75rem;font-size:1.1rem;font-weight:700;color:var(--green)">Answer: ${data.correctAnswer}</div>`
+      );
+    }
+  } else if (state.gameType === 'human-or-ai') {
+    const btns = area.querySelectorAll('.choice-btn');
+    btns.forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.choice === data.correctAnswer) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+    // Show author
+    if (data.author) {
+      area.insertAdjacentHTML('beforeend',
+        `<div style="margin-top:0.75rem;font-size:0.95rem;color:var(--teal);font-weight:600">— ${data.author}</div>`
+      );
+    }
+  }
+}
+
+// ─── Mini Leaderboard ───
+function renderMiniLeaderboard(leaderboard) {
+  const container = $('#mini-leaderboard');
+  container.innerHTML = leaderboard.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    return `
+      <div class="lb-entry">
+        <span class="lb-rank ${rankClass}">${medal}</span>
+        <span class="lb-avatar">${p.avatar}</span>
+        <span class="lb-name">${p.name}</span>
+        <span class="lb-score">${p.score}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Round Results ───
+function renderRoundResults(scores, roundNumber) {
+  $('#results-title').textContent = `Round ${roundNumber} Complete!`;
+
+  // Podium (top 3)
+  const podium = $('#podium');
+  const top3 = scores.slice(0, 3);
+  const order = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3; // 2nd, 1st, 3rd
+  const classes = top3.length >= 3 ? ['second', 'first', 'third'] : top3.map((_, i) => ['first', 'second', 'third'][i]);
+  const medals = { first: '🥇', second: '🥈', third: '🥉' };
+
+  podium.innerHTML = order.map((p, i) => `
+    <div class="podium-place">
+      <span class="podium-avatar">${p.avatar}</span>
+      <span class="podium-name">${p.name}</span>
+      <span class="podium-score">${p.totalScore} pts</span>
+      <div class="podium-bar ${classes[i]}"><span class="medal">${medals[classes[i]]}</span></div>
+    </div>
+  `).join('');
+
+  // Full leaderboard
+  const lb = $('#results-leaderboard');
+  lb.innerHTML = scores.map((p, i) => `
+    <div class="lb-entry">
+      <span class="lb-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+      <span class="lb-avatar">${p.avatar}</span>
+      <span class="lb-name">${p.name}</span>
+      <span class="lb-score" style="margin-left:auto">${p.totalScore} pts</span>
+      <span style="font-size:0.75rem;color:var(--green);margin-left:0.5rem">${p.roundScore > 0 ? `+${p.roundScore}` : ''}</span>
+    </div>
+  `).join('');
+}
+
+// ─── Final Results ───
+function renderFinalResults(finalScores, roundHistory, totalRounds) {
+  // Winner
+  const winner = finalScores[0];
+  if (winner) {
+    const wd = $('#winner-display');
+    wd.innerHTML = `
+      <span class="winner-avatar">${winner.avatar}</span>
+      <div class="winner-name">${winner.name}</div>
+      <div class="winner-score">${winner.totalScore} points</div>
+    `;
+  }
+
+  // Leaderboard
+  const lb = $('#final-leaderboard');
+  lb.innerHTML = finalScores.map((p, i) => `
+    <div class="lb-entry">
+      <span class="lb-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+      <span class="lb-avatar">${p.avatar}</span>
+      <span class="lb-name">${p.name}</span>
+      <span class="lb-score" style="margin-left:auto">${p.totalScore} pts</span>
+    </div>
+  `).join('');
+
+  // Round history
+  const rh = $('#round-history');
+  if (roundHistory && roundHistory.length > 0) {
+    rh.innerHTML = `
+      <h4>Round History</h4>
+      ${roundHistory.map(r => `
+        <div class="rh-entry">
+          <span class="rh-round">#${r.roundNumber}</span>
+          <span class="rh-game">${r.gameName}</span>
+          <span class="rh-winner">${r.scores[0]?.avatar} ${r.scores[0]?.name}</span>
+        </div>
+      `).join('')}
+    `;
+  }
+}
+
+// ─── Confetti ───
+function launchConfetti() {
+  const canvas = $('#confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#6c5ce7', '#00cec9', '#fdcb6e', '#ff7675', '#00b894', '#e17055', '#a29bfe'];
+  const particles = [];
+
+  for (let i = 0; i < 150; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 4 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 3,
+      vy: Math.random() * 3 + 2,
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - 0.5) * 8,
+    });
+  }
+
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+
+    particles.forEach(p => {
+      if (p.y > canvas.height + 50) return;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      p.rotation += p.rotSpeed;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    frame++;
+    if (alive && frame < 300) requestAnimationFrame(animate);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  animate();
+}
+
+// ─── Start ───
+init();
