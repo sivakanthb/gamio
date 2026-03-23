@@ -12,20 +12,92 @@
   <div id="app">
     <!-- ── HOME ── -->
     <div id="screen-home" class="screen active">
-      <div class="container center-content">
-        <div class="logo-wrapper">
+      <canvas id="home-canvas"></canvas>
+      <div class="home-content">
+        <!-- Floating game icons background -->
+        <div class="floating-icons">
+          <span class="float-icon" style="--delay:0s;--x:10%;--y:15%">🧠</span>
+          <span class="float-icon" style="--delay:1.2s;--x:85%;--y:10%">🎯</span>
+          <span class="float-icon" style="--delay:0.5s;--x:75%;--y:75%">🤖</span>
+          <span class="float-icon" style="--delay:1.8s;--x:15%;--y:80%">🔤</span>
+          <span class="float-icon" style="--delay:2.2s;--x:90%;--y:45%">🔍</span>
+          <span class="float-icon" style="--delay:0.8s;--x:5%;--y:50%">🏆</span>
+          <span class="float-icon" style="--delay:1.5s;--x:50%;--y:5%">⚡</span>
+          <span class="float-icon" style="--delay:2.5s;--x:45%;--y:90%">🎮</span>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="hero">
+          <div class="logo-glow"></div>
           <h1 class="logo">GAMIO</h1>
-          <p class="tagline">The Ultimate Party Game</p>
+          <p class="tagline">The Ultimate Multiplayer Party Game</p>
+          <p class="tagline-sub">Play anywhere. No downloads. No login. Just fun.</p>
         </div>
-        <div class="home-buttons">
-          <button id="btn-create" class="btn btn-primary btn-large">
-            <span class="btn-icon-left">🎯</span> Create Room
+
+        <!-- Action Buttons -->
+        <div class="home-actions">
+          <button id="btn-create" class="btn btn-hero-primary">
+            <span class="btn-shine"></span>
+            <span class="btn-content"><span class="btn-icon-left">🎯</span> Create Room</span>
           </button>
-          <button id="btn-join" class="btn btn-secondary btn-large">
-            <span class="btn-icon-left">🚀</span> Join Room
+          <button id="btn-join" class="btn btn-hero-secondary">
+            <span class="btn-content"><span class="btn-icon-left">🚀</span> Join Room</span>
           </button>
         </div>
-        <p class="home-footer">No login required. Just play!</p>
+
+        <!-- Features Strip -->
+        <div class="features-strip">
+          <div class="feature-chip">
+            <span class="feature-icon">🧠</span>
+            <span>5 Game Modes</span>
+          </div>
+          <div class="feature-chip">
+            <span class="feature-icon">👥</span>
+            <span>Up to 16 Players</span>
+          </div>
+          <div class="feature-chip">
+            <span class="feature-icon">⚡</span>
+            <span>Real-time</span>
+          </div>
+          <div class="feature-chip">
+            <span class="feature-icon">🏆</span>
+            <span>Live Leaderboard</span>
+          </div>
+        </div>
+
+        <!-- Game Mode Preview -->
+        <div class="game-preview-section">
+          <h3 class="preview-title">Games Inside</h3>
+          <div class="game-preview-grid">
+            <div class="game-preview-card" style="--card-hue: 260">
+              <span class="gpc-icon">🧠</span>
+              <span class="gpc-name">Trivia Blitz</span>
+              <span class="gpc-desc">Test your knowledge</span>
+            </div>
+            <div class="game-preview-card" style="--card-hue: 170">
+              <span class="gpc-icon">🎯</span>
+              <span class="gpc-name">Emoji Decode</span>
+              <span class="gpc-desc">Crack the emoji code</span>
+            </div>
+            <div class="game-preview-card" style="--card-hue: 200">
+              <span class="gpc-icon">🤖</span>
+              <span class="gpc-name">Who Said It?</span>
+              <span class="gpc-desc">Human or AI?</span>
+            </div>
+            <div class="game-preview-card" style="--card-hue: 45">
+              <span class="gpc-icon">🔤</span>
+              <span class="gpc-name">Word Scramble</span>
+              <span class="gpc-desc">Unscramble to win</span>
+            </div>
+            <div class="game-preview-card" style="--card-hue: 340">
+              <span class="gpc-icon">🔍</span>
+              <span class="gpc-name">Odd One Out</span>
+              <span class="gpc-desc">Spot the misfit</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="home-footer">Made for team fun • Share a code and let's go!</p>
       </div>
     </div>
 
