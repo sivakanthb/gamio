@@ -105,6 +105,8 @@
         <div class="game-sidebar">
           <h4 class="sidebar-title">Leaderboard</h4>
           <div id="mini-leaderboard" class="mini-leaderboard"></div>
+          <button id="btn-stop-game" class="btn btn-danger btn-full btn-stop-game hidden">⏹ Stop Round</button>
+          <button id="btn-leave-game" class="btn btn-ghost btn-full btn-leave-game hidden">🚪 Leave Game</button>
         </div>
       </div>
     </div>
@@ -141,6 +143,14 @@
         <div id="host-final-controls" class="hidden" style="margin-top:1.5rem">
           <button id="btn-play-again" class="btn btn-primary btn-large btn-full">Play Again 🔄</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ── CONNECTION OVERLAY ── -->
+    <div id="connection-overlay" class="connection-overlay hidden">
+      <div class="connection-box">
+        <div class="spinner"></div>
+        <p id="connection-msg">Reconnecting...</p>
       </div>
     </div>
 

@@ -197,11 +197,47 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Stop Round Mid-Game (host) ──
+  socket.on('stop-round', () => {
+    const room = rooms.get(socket.roomCode);
+    if (!room || room.hostId !== socket.id) return;
+    if (room.state !== 'playing') return;
+    clearTimeout(room.questionTimer);
+    endRound(room);
+    console.log(`[Room ${room.code}] Round stopped by host mid-game`);
+  });
+
   // ── End Game (host) ──
   socket.on('end-game', () => {
     const room = rooms.get(socket.roomCode);
     if (!room || room.hostId !== socket.id) return;
+    clearTimeout(room.questionTimer);
     endGame(room);
+  });
+
+  // ── Leave Game (any player) ──
+  socket.on('leave-game', () => {
+    const room = rooms.get(socket.roomCode);
+    if (!room) return;
+    const player = room.players.get(socket.id);
+    room.players.delete(socket.id);
+    socket.leave(socket.roomCode);
+    const oldRoomCode = socket.roomCode;
+    socket.roomCode = null;
+    socket.emit('left-game');
+
+    if (room.players.size === 0) {
+      clearTimeout(room.questionTimer);
+      rooms.delete(oldRoomCode);
+      return;
+    }
+    if (room.hostId === socket.id) {
+      const newHost = room.players.values().next().value;
+      newHost.isHost = true;
+      room.hostId = newHost.id;
+      io.to(newHost.id).emit('you-are-host');
+    }
+    io.to(room.code).emit('player-left', { player: player ? { name: player.name, avatar: player.avatar } : null, players: getPlayersList(room) });
   });
 
   // ── Return to Lobby ──

@@ -167,6 +167,20 @@ function setupEventListeners() {
 
   // Play again
   $('#btn-play-again').addEventListener('click', () => socket.emit('play-again'));
+
+  // Stop round mid-game (host)
+  $('#btn-stop-game').addEventListener('click', () => {
+    if (confirm('Stop the current round? Scores so far will be kept.')) {
+      socket.emit('stop-round');
+    }
+  });
+
+  // Leave game (any player)
+  $('#btn-leave-game').addEventListener('click', () => {
+    if (confirm('Leave the game? You can rejoin with a new code.')) {
+      socket.emit('leave-game');
+    }
+  });
 }
 
 // ─── Game Selector (reusable) ───
@@ -234,6 +248,7 @@ function setupSocketHandlers() {
     state.players = players;
     renderPlayers(players);
     showToast(`${player.name} joined!`, 'info');
+    playSound('join');
   });
 
   // ── Player Left ──
@@ -271,7 +286,9 @@ function setupSocketHandlers() {
 
     renderQuestion(data.question);
     startTimer(data.timeLimit);
+    updateGameSidebarButtons();
     showScreen('game');
+    playSound('roundstart');
   });
 
   // ── Next Question ──
@@ -292,6 +309,7 @@ function setupSocketHandlers() {
     state.myRoundScore = roundScore;
     $('#my-score').textContent = `${totalScore} pts`;
     showAnswerFeedback(isCorrect, points);
+    playSound(isCorrect ? 'correct' : 'wrong');
   });
 
   // ── Question Result (correct answer reveal) ──
@@ -335,6 +353,7 @@ function setupSocketHandlers() {
     }
     showScreen('final');
     launchConfetti();
+    playSound('winner');
   });
 
   // ── Game Reset (Play Again) ──
@@ -368,8 +387,32 @@ function setupSocketHandlers() {
     showScreen('lobby');
   });
 
+  // ── Left Game ──
+  socket.on('left-game', () => {
+    stopTimer();
+    state.roomCode = null;
+    state.player = null;
+    state.isHost = false;
+    state.myScore = 0;
+    showScreen('home');
+    showToast('You left the game', 'info');
+  });
+
   // ── Error ──
   socket.on('error-msg', ({ message }) => showToast(message, 'error'));
+
+  // ── Connection Handling ──
+  socket.on('disconnect', () => {
+    $('#connection-overlay').classList.remove('hidden');
+    $('#connection-msg').textContent = 'Connection lost. Reconnecting...';
+  });
+
+  socket.on('connect', () => {
+    $('#connection-overlay').classList.add('hidden');
+    if (state.roomCode) {
+      showToast('Reconnected!', 'success');
+    }
+  });
 }
 
 // ─── Render Players Grid ───
@@ -520,8 +563,8 @@ function startTimer(seconds) {
 
     // Color changes
     circle.classList.remove('warning', 'danger');
-    if (state.timeLeft <= 3) circle.classList.add('danger');
-    else if (state.timeLeft <= 5) circle.classList.add('warning');
+    if (state.timeLeft <= 3) { circle.classList.add('danger'); playSound('countdown'); }
+    else if (state.timeLeft <= 5) { circle.classList.add('warning'); playSound('tick'); }
 
     if (state.timeLeft <= 0) {
       stopTimer();
@@ -731,6 +774,114 @@ function launchConfetti() {
   }
 
   animate();
+}
+
+// ─── Show/Hide Game Sidebar Buttons ───
+function updateGameSidebarButtons() {
+  const stopBtn = $('#btn-stop-game');
+  const leaveBtn = $('#btn-leave-game');
+  if (state.isHost) {
+    stopBtn.classList.remove('hidden');
+    leaveBtn.classList.add('hidden');
+  } else {
+    stopBtn.classList.add('hidden');
+    leaveBtn.classList.remove('hidden');
+  }
+}
+
+// ─── Sound Effects (Web Audio API — no files needed) ───
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function playSound(type) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.value = 0.15;
+
+    const now = ctx.currentTime;
+
+    switch (type) {
+      case 'correct':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now);
+        osc.frequency.setValueAtTime(659, now + 0.1);
+        osc.frequency.setValueAtTime(784, now + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        break;
+
+      case 'wrong':
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        gain.gain.value = 0.1;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        break;
+
+      case 'tick':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.value = 0.08;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+        break;
+
+      case 'countdown':
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.value = 0.1;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+        break;
+
+      case 'winner':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, now);
+        osc.frequency.setValueAtTime(659, now + 0.15);
+        osc.frequency.setValueAtTime(784, now + 0.3);
+        osc.frequency.setValueAtTime(1047, now + 0.45);
+        gain.gain.value = 0.2;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        osc.start(now);
+        osc.stop(now + 0.8);
+        break;
+
+      case 'join':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554, now + 0.1);
+        gain.gain.value = 0.1;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        break;
+
+      case 'roundstart':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(392, now);
+        osc.frequency.setValueAtTime(523, now + 0.12);
+        osc.frequency.setValueAtTime(659, now + 0.24);
+        gain.gain.value = 0.15;
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+        break;
+    }
+  } catch (e) { /* audio not supported */ }
 }
 
 // ─── Start ───
