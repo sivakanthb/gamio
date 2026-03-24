@@ -219,14 +219,32 @@ function renderGameSelector(containerId) {
 
   container.innerHTML = categories.map(cat => `
     <div class="game-category">
-      <div class="game-category-label">${cat.icon} ${cat.name}</div>
-      <div class="game-category-grid">
-        ${cat.games.map(g => `
-          <div class="game-card" data-game="${g.id}"><span class="game-icon">${g.icon}</span><span class="game-name">${g.name}</span></div>
-        `).join('')}
+      <div class="game-category-header">
+        <div class="game-category-header-left">
+          <span class="game-category-header-icon">${cat.icon}</span>
+          <span class="game-category-header-name">${cat.name}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.4rem">
+          <span class="game-category-header-count">${cat.games.length}</span>
+          <span class="game-category-chevron">▼</span>
+        </div>
+      </div>
+      <div class="game-category-body">
+        <div class="game-category-grid">
+          ${cat.games.map(g => `
+            <div class="game-card" data-game="${g.id}"><span class="game-icon">${g.icon}</span><span class="game-name">${g.name}</span></div>
+          `).join('')}
+        </div>
       </div>
     </div>
   `).join('');
+
+  // Accordion toggle for category headers
+  container.querySelectorAll('.game-category-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.parentElement.classList.toggle('open');
+    });
+  });
 
   container.addEventListener('click', (e) => {
     const card = e.target.closest('.game-card');
