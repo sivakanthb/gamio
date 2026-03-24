@@ -233,10 +233,10 @@ body {
 /* Action Buttons */
 .home-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+  flex-direction: row;
+  gap: 1rem;
   width: 100%;
-  max-width: 340px;
+  max-width: 520px;
   margin: 2.5rem 0 2rem;
 }
 
@@ -1200,6 +1200,7 @@ body {
   .timer-wrapper { width: 52px; height: 52px; }
   .timer-text { font-size: 1.15rem; }
   .choice-buttons { flex-direction: column; }
+  .home-actions { flex-direction: column; max-width: 340px; }
   .results-actions { flex-direction: column; }
   .podium { gap: 0.5rem; }
   .podium-bar { width: 60px; }
