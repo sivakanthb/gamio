@@ -321,6 +321,18 @@ function sanitizeQuestion(q) {
   } else if (safe.type === 'odd-one-out') {
     delete safe.oddIndex;
     delete safe.explanation;
+  } else if (safe.type === 'guess-year') {
+    delete safe.correct;
+  } else if (safe.type === 'true-false') {
+    delete safe.answer;
+    delete safe.explanation;
+  } else if (safe.type === 'missing-lyrics') {
+    delete safe.answer;
+  } else if (safe.type === 'spot-the-fake') {
+    delete safe.fakeIndex;
+    delete safe.explanation;
+  } else if (safe.type === 'speed-math') {
+    delete safe.answer;
   }
   return safe;
 }
@@ -354,6 +366,22 @@ function advanceQuestion(room) {
     reveal.correctIndex = currentQ.oddIndex;
     reveal.correctAnswer = currentQ.items[currentQ.oddIndex];
     reveal.explanation = currentQ.explanation;
+  } else if (currentQ.type === 'guess-year') {
+    reveal.correctIndex = currentQ.correct;
+    reveal.correctAnswer = currentQ.options[currentQ.correct];
+  } else if (currentQ.type === 'true-false') {
+    reveal.correctAnswer = currentQ.answer;
+    reveal.explanation = currentQ.explanation;
+  } else if (currentQ.type === 'missing-lyrics') {
+    reveal.correctAnswer = currentQ.answer;
+    reveal.song = currentQ.song;
+    reveal.artist = currentQ.artist;
+  } else if (currentQ.type === 'spot-the-fake') {
+    reveal.correctIndex = currentQ.fakeIndex;
+    reveal.correctAnswer = currentQ.facts[currentQ.fakeIndex];
+    reveal.explanation = currentQ.explanation;
+  } else if (currentQ.type === 'speed-math') {
+    reveal.correctAnswer = currentQ.answer;
   }
 
   io.to(room.code).emit('question-result', reveal);

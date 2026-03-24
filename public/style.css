@@ -372,6 +372,17 @@ body {
 .gpc-name { font-size: 0.78rem; font-weight: 700; color: var(--text); }
 .gpc-desc { font-size: 0.68rem; color: var(--text-muted); }
 
+.category-block { margin-bottom: 1rem; }
+.category-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
 .home-footer {
   margin-top: auto;
   padding-top: 1rem;
@@ -530,10 +541,28 @@ body {
 .host-controls { margin-top: 1rem; }
 
 .game-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1.25rem;
+}
+.game-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.game-category-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding-left: 0.25rem;
+}
+.game-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
 }
 .game-card {
   display: flex;

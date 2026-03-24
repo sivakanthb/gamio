@@ -198,13 +198,36 @@ function setupEventListeners() {
 // ─── Game Selector (reusable) ───
 function renderGameSelector(containerId) {
   const container = $(`#${containerId}`);
-  container.innerHTML = `
-    <div class="game-card" data-game="trivia"><span class="game-icon">🧠</span><span class="game-name">Trivia Blitz</span></div>
-    <div class="game-card" data-game="emoji"><span class="game-icon">🎯</span><span class="game-name">Emoji Decode</span></div>
-    <div class="game-card" data-game="human-or-ai"><span class="game-icon">🤖</span><span class="game-name">Who Said It?</span></div>
-    <div class="game-card" data-game="scramble"><span class="game-icon">🔤</span><span class="game-name">Word Scramble</span></div>
-    <div class="game-card" data-game="odd-one-out"><span class="game-icon">🔍</span><span class="game-name">Odd One Out</span></div>
-  `;
+  const categories = [
+    { name: 'Trivia & Knowledge', icon: '🧠', games: [
+      { id: 'trivia', icon: '🧠', name: 'Trivia Blitz' },
+      { id: 'guess-year', icon: '📅', name: 'Guess the Year' },
+      { id: 'true-false', icon: '✅', name: 'True or False' },
+      { id: 'human-or-ai', icon: '🤖', name: 'Who Said It?' },
+    ]},
+    { name: 'Decode & Guess', icon: '🎯', games: [
+      { id: 'emoji', icon: '🎯', name: 'Emoji Decode' },
+      { id: 'missing-lyrics', icon: '🎵', name: 'Missing Lyrics' },
+      { id: 'spot-the-fake', icon: '🕵️', name: 'Spot the Fake' },
+    ]},
+    { name: 'Words & Speed', icon: '⚡', games: [
+      { id: 'scramble', icon: '🔤', name: 'Word Scramble' },
+      { id: 'odd-one-out', icon: '🔍', name: 'Odd One Out' },
+      { id: 'speed-math', icon: '🔢', name: 'Speed Math' },
+    ]},
+  ];
+
+  container.innerHTML = categories.map(cat => `
+    <div class="game-category">
+      <div class="game-category-label">${cat.icon} ${cat.name}</div>
+      <div class="game-category-grid">
+        ${cat.games.map(g => `
+          <div class="game-card" data-game="${g.id}"><span class="game-icon">${g.icon}</span><span class="game-name">${g.name}</span></div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
   container.addEventListener('click', (e) => {
     const card = e.target.closest('.game-card');
     if (!card) return;
@@ -478,6 +501,21 @@ function renderQuestion(question) {
     case 'odd-one-out':
       renderOddOneOutQuestion(area, question);
       break;
+    case 'guess-year':
+      renderGuessYearQuestion(area, question);
+      break;
+    case 'true-false':
+      renderTrueFalseQuestion(area, question);
+      break;
+    case 'missing-lyrics':
+      renderMissingLyricsQuestion(area, question);
+      break;
+    case 'spot-the-fake':
+      renderSpotTheFakeQuestion(area, question);
+      break;
+    case 'speed-math':
+      renderSpeedMathQuestion(area, question);
+      break;
   }
 }
 
@@ -619,6 +657,143 @@ function renderOddOneOutQuestion(area, q) {
   });
 }
 
+// ── Guess the Year ──
+function renderGuessYearQuestion(area, q) {
+  const letters = ['A', 'B', 'C', 'D'];
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">When did this happen?</p>
+    <p class="question-text" style="font-size:1.15rem">${q.event}</p>
+    <div class="options-grid">
+      ${q.options.map((opt, i) => `
+        <button class="option-btn" data-index="${i}">
+          <span class="option-letter">${letters[i]}</span>
+          <span>${opt}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  area.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: Number(btn.dataset.index), timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ── True or False ──
+function renderTrueFalseQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">True or False?</p>
+    <div class="quote-text" style="font-size:1.15rem">${q.statement}</div>
+    <div class="choice-buttons">
+      <button class="choice-btn" data-choice="true" style="--btn-color: var(--green)">
+        <span class="choice-icon">✅</span>
+        <span class="choice-label">True</span>
+      </button>
+      <button class="choice-btn" data-choice="false" style="--btn-color: var(--coral)">
+        <span class="choice-icon">❌</span>
+        <span class="choice-label">False</span>
+      </button>
+    </div>
+  `;
+  area.querySelectorAll('.choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.choice-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: btn.dataset.choice === 'true', timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ── Missing Lyrics ──
+function renderMissingLyricsQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">🎵 ${q.category || ''}</span>
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">Fill in the missing word!</p>
+    <div class="quote-text" style="font-size:1.2rem;font-style:italic">"${q.lyric}"</div>
+    <div class="emoji-input-wrapper">
+      <input type="text" class="emoji-input" id="lyrics-answer" placeholder="Missing word..." autocomplete="off" spellcheck="false">
+      <button class="emoji-submit" id="lyrics-submit-btn">Go!</button>
+    </div>
+  `;
+  const input = area.querySelector('#lyrics-answer');
+  const btn = area.querySelector('#lyrics-submit-btn');
+
+  function submit() {
+    if (state.hasAnswered) return;
+    const answer = input.value.trim();
+    if (!answer) return;
+    state.hasAnswered = true;
+    input.disabled = true;
+    btn.disabled = true;
+    socket.emit('submit-answer', { answer, timeLeft: state.timeLeft });
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  setTimeout(() => input.focus(), 100);
+}
+
+// ── Spot the Fake ──
+function renderSpotTheFakeQuestion(area, q) {
+  area.innerHTML = `
+    <span class="question-category">${q.category || ''}</span>
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">Which "fact" is FAKE?</p>
+    <div class="options-grid" style="grid-template-columns: 1fr">
+      ${q.facts.map((fact, i) => `
+        <button class="option-btn odd-btn" data-index="${i}" style="text-align:left;padding:0.9rem 1.2rem">
+          <span style="opacity:0.5;margin-right:0.5rem">${i + 1}.</span>
+          <span>${fact}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  area.querySelectorAll('.odd-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.hasAnswered) return;
+      state.hasAnswered = true;
+      area.querySelectorAll('.odd-btn').forEach(b => { b.disabled = true; });
+      btn.classList.add('selected');
+      socket.emit('submit-answer', { answer: Number(btn.dataset.index), timeLeft: state.timeLeft });
+    });
+  });
+}
+
+// ── Speed Math ──
+function renderSpeedMathQuestion(area, q) {
+  area.innerHTML = `
+    <p class="question-text" style="font-size:1rem;color:var(--text-secondary);font-weight:600">Solve it fast!</p>
+    <div class="emoji-display" style="font-size:3rem;letter-spacing:0.1em">${q.expression}</div>
+    <div class="emoji-input-wrapper">
+      <input type="number" class="emoji-input" id="math-answer" placeholder="= ?" autocomplete="off" inputmode="numeric">
+      <button class="emoji-submit" id="math-submit-btn">Go!</button>
+    </div>
+  `;
+  const input = area.querySelector('#math-answer');
+  const btn = area.querySelector('#math-submit-btn');
+
+  function submit() {
+    if (state.hasAnswered) return;
+    const val = input.value.trim();
+    if (val === '') return;
+    state.hasAnswered = true;
+    input.disabled = true;
+    btn.disabled = true;
+    socket.emit('submit-answer', { answer: Number(val), timeLeft: state.timeLeft });
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  setTimeout(() => input.focus(), 100);
+}
+
 // ─── Timer ───
 function startTimer(seconds) {
   stopTimer();
@@ -728,6 +903,53 @@ function revealAnswer(data) {
     if (data.explanation) {
       area.insertAdjacentHTML('beforeend',
         `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--teal);font-weight:600">${data.explanation}</div>`
+      );
+    }
+  } else if (state.gameType === 'guess-year') {
+    const btns = area.querySelectorAll('.option-btn');
+    btns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === data.correctIndex) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+  } else if (state.gameType === 'true-false') {
+    const btns = area.querySelectorAll('.choice-btn');
+    const correctStr = String(data.correctAnswer);
+    btns.forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.choice === correctStr) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+    if (data.explanation) {
+      area.insertAdjacentHTML('beforeend',
+        `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--teal);font-weight:600">${data.explanation}</div>`
+      );
+    }
+  } else if (state.gameType === 'missing-lyrics') {
+    const wrapper = area.querySelector('.emoji-input-wrapper');
+    if (wrapper) {
+      wrapper.insertAdjacentHTML('afterend',
+        `<div style="margin-top:0.75rem;font-size:1.1rem;font-weight:700;color:var(--green)">Answer: ${data.correctAnswer}</div>
+         <div style="margin-top:0.3rem;font-size:0.9rem;color:var(--teal)">🎵 ${data.song} — ${data.artist}</div>`
+      );
+    }
+  } else if (state.gameType === 'spot-the-fake') {
+    const btns = area.querySelectorAll('.odd-btn');
+    btns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === data.correctIndex) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+    if (data.explanation) {
+      area.insertAdjacentHTML('beforeend',
+        `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--teal);font-weight:600">${data.explanation}</div>`
+      );
+    }
+  } else if (state.gameType === 'speed-math') {
+    const wrapper = area.querySelector('.emoji-input-wrapper');
+    if (wrapper) {
+      wrapper.insertAdjacentHTML('afterend',
+        `<div style="margin-top:0.75rem;font-size:1.1rem;font-weight:700;color:var(--green)">Answer: ${data.correctAnswer}</div>`
       );
     }
   }

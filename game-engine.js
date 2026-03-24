@@ -3,7 +3,14 @@
 // Handles game logic, scoring, answer checking
 // ============================================
 
-const { triviaQuestions, emojiPuzzles, humanOrAiQuotes, wordScrambles, oddOneOut, pickRandom, shuffle } = require('./question-bank');
+const { triviaQuestions, emojiPuzzles, humanOrAiQuotes, wordScrambles, oddOneOut, guessTheYear, trueFalse, missingLyrics, spotTheFake, pickRandom, shuffle } = require('./question-bank');
+
+// ─── Categories ───
+const GAME_CATEGORIES = {
+  'trivia-knowledge': { name: 'Trivia & Knowledge', icon: '🧠', games: ['trivia', 'guess-year', 'true-false', 'human-or-ai'] },
+  'decode-guess':     { name: 'Decode & Guess',     icon: '🎯', games: ['emoji', 'missing-lyrics', 'spot-the-fake'] },
+  'words-speed':      { name: 'Words & Speed',      icon: '⚡', games: ['scramble', 'odd-one-out', 'speed-math'] },
+};
 
 const GAME_CONFIG = {
   trivia: {
@@ -13,6 +20,7 @@ const GAME_CONFIG = {
     timePerQuestion: 15,
     basePoints: 100,
     speedBonus: 50,
+    category: 'trivia-knowledge',
   },
   emoji: {
     name: 'Emoji Decode',
@@ -21,6 +29,7 @@ const GAME_CONFIG = {
     timePerQuestion: 20,
     basePoints: 150,
     speedBonus: 50,
+    category: 'decode-guess',
   },
   'human-or-ai': {
     name: 'Who Said It?',
@@ -29,6 +38,7 @@ const GAME_CONFIG = {
     timePerQuestion: 12,
     basePoints: 100,
     speedBonus: 30,
+    category: 'trivia-knowledge',
   },
   scramble: {
     name: 'Word Scramble',
@@ -37,6 +47,7 @@ const GAME_CONFIG = {
     timePerQuestion: 20,
     basePoints: 120,
     speedBonus: 60,
+    category: 'words-speed',
   },
   'odd-one-out': {
     name: 'Odd One Out',
@@ -45,6 +56,52 @@ const GAME_CONFIG = {
     timePerQuestion: 12,
     basePoints: 100,
     speedBonus: 40,
+    category: 'words-speed',
+  },
+  'guess-year': {
+    name: 'Guess the Year',
+    icon: '📅',
+    questionsPerRound: 8,
+    timePerQuestion: 15,
+    basePoints: 100,
+    speedBonus: 50,
+    category: 'trivia-knowledge',
+  },
+  'true-false': {
+    name: 'True or False',
+    icon: '✅',
+    questionsPerRound: 10,
+    timePerQuestion: 10,
+    basePoints: 80,
+    speedBonus: 40,
+    category: 'trivia-knowledge',
+  },
+  'missing-lyrics': {
+    name: 'Missing Lyrics',
+    icon: '🎵',
+    questionsPerRound: 8,
+    timePerQuestion: 15,
+    basePoints: 120,
+    speedBonus: 50,
+    category: 'decode-guess',
+  },
+  'spot-the-fake': {
+    name: 'Spot the Fake',
+    icon: '🕵️',
+    questionsPerRound: 8,
+    timePerQuestion: 18,
+    basePoints: 130,
+    speedBonus: 50,
+    category: 'decode-guess',
+  },
+  'speed-math': {
+    name: 'Speed Math',
+    icon: '🔢',
+    questionsPerRound: 10,
+    timePerQuestion: 10,
+    basePoints: 80,
+    speedBonus: 60,
+    category: 'words-speed',
   },
 };
 
@@ -70,6 +127,21 @@ class GameEngine {
       case 'odd-one-out':
         questions = this._prepareOddOneOutQuestions(config.questionsPerRound);
         break;
+      case 'guess-year':
+        questions = this._prepareGuessYearQuestions(config.questionsPerRound);
+        break;
+      case 'true-false':
+        questions = this._prepareTrueFalseQuestions(config.questionsPerRound);
+        break;
+      case 'missing-lyrics':
+        questions = this._prepareMissingLyricsQuestions(config.questionsPerRound);
+        break;
+      case 'spot-the-fake':
+        questions = this._prepareSpotTheFakeQuestions(config.questionsPerRound);
+        break;
+      case 'speed-math':
+        questions = this._prepareSpeedMathQuestions(config.questionsPerRound);
+        break;
     }
 
     return { gameType, config, questions };
@@ -87,6 +159,16 @@ class GameEngine {
         return this._fuzzyMatch(String(answer), question.word);
       case 'odd-one-out':
         return Number(answer) === question.oddIndex;
+      case 'guess-year':
+        return Number(answer) === question.correct;
+      case 'true-false':
+        return answer === question.answer;
+      case 'missing-lyrics':
+        return this._fuzzyMatch(String(answer), question.answer);
+      case 'spot-the-fake':
+        return Number(answer) === question.fakeIndex;
+      case 'speed-math':
+        return Number(answer) === question.answer;
       default:
         return false;
     }
@@ -108,7 +190,12 @@ class GameEngine {
       id: key,
       name: val.name,
       icon: val.icon,
+      category: val.category,
     }));
+  }
+
+  getCategories() {
+    return GAME_CATEGORIES;
   }
 
   // ─── Private Methods ───
@@ -173,6 +260,84 @@ class GameEngine {
       category: q.category,
       timeLimit: GAME_CONFIG['odd-one-out'].timePerQuestion,
     }));
+  }
+
+  _prepareGuessYearQuestions(count) {
+    const selected = pickRandom(guessTheYear, count);
+    return selected.map(q => ({
+      type: 'guess-year',
+      event: q.event,
+      options: q.options.map(String),
+      correct: q.correct,
+      category: q.category,
+      timeLimit: GAME_CONFIG['guess-year'].timePerQuestion,
+    }));
+  }
+
+  _prepareTrueFalseQuestions(count) {
+    const selected = pickRandom(trueFalse, count);
+    return selected.map(q => ({
+      type: 'true-false',
+      statement: q.statement,
+      answer: q.answer,
+      explanation: q.explanation,
+      category: q.category,
+      timeLimit: GAME_CONFIG['true-false'].timePerQuestion,
+    }));
+  }
+
+  _prepareMissingLyricsQuestions(count) {
+    const selected = pickRandom(missingLyrics, count);
+    return selected.map(q => ({
+      type: 'missing-lyrics',
+      lyric: q.lyric,
+      answer: q.answer,
+      song: q.song,
+      artist: q.artist,
+      category: q.category,
+      timeLimit: GAME_CONFIG['missing-lyrics'].timePerQuestion,
+    }));
+  }
+
+  _prepareSpotTheFakeQuestions(count) {
+    const selected = pickRandom(spotTheFake, count);
+    return selected.map(q => ({
+      type: 'spot-the-fake',
+      facts: q.facts,
+      fakeIndex: q.fakeIndex,
+      explanation: q.explanation,
+      category: q.category,
+      timeLimit: GAME_CONFIG['spot-the-fake'].timePerQuestion,
+    }));
+  }
+
+  _prepareSpeedMathQuestions(count) {
+    const questions = [];
+    const ops = ['+', '-', '×'];
+    for (let i = 0; i < count; i++) {
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b, answer;
+      if (op === '+') {
+        a = Math.floor(Math.random() * 90) + 10;
+        b = Math.floor(Math.random() * 90) + 10;
+        answer = a + b;
+      } else if (op === '-') {
+        a = Math.floor(Math.random() * 90) + 20;
+        b = Math.floor(Math.random() * (a - 1)) + 1;
+        answer = a - b;
+      } else {
+        a = Math.floor(Math.random() * 12) + 2;
+        b = Math.floor(Math.random() * 12) + 2;
+        answer = a * b;
+      }
+      questions.push({
+        type: 'speed-math',
+        expression: `${a} ${op} ${b}`,
+        answer,
+        timeLimit: GAME_CONFIG['speed-math'].timePerQuestion,
+      });
+    }
+    return questions;
   }
 
   _fuzzyMatch(userAnswer, correctAnswer) {
