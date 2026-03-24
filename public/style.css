@@ -7,11 +7,11 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg-deep: #121228;
-  --bg-primary: #181838;
-  --bg-surface: rgba(255,255,255,0.06);
-  --bg-surface-hover: rgba(255,255,255,0.10);
-  --bg-glass: rgba(255,255,255,0.08);
+  --bg-deep: #1a1a3e;
+  --bg-primary: #22224a;
+  --bg-surface: rgba(255,255,255,0.08);
+  --bg-surface-hover: rgba(255,255,255,0.13);
+  --bg-glass: rgba(255,255,255,0.10);
   --accent: #6c5ce7;
   --accent-glow: rgba(108,92,231,0.35);
   --teal: #00cec9;
@@ -20,14 +20,14 @@
   --yellow: #fdcb6e;
   --green: #00b894;
   --text: #eeeeff;
-  --text-secondary: rgba(230,230,255,0.70);
-  --text-muted: rgba(230,230,255,0.40);
-  --border: rgba(255,255,255,0.10);
+  --text-secondary: rgba(230,230,255,0.75);
+  --text-muted: rgba(230,230,255,0.45);
+  --border: rgba(255,255,255,0.12);
   --radius: 16px;
   --radius-sm: 10px;
   --radius-xs: 6px;
   --font: 'Poppins', system-ui, -apple-system, sans-serif;
-  --shadow: 0 8px 32px rgba(0,0,0,0.35);
+  --shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 html { font-size: 16px; }
