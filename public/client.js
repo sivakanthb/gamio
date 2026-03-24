@@ -54,6 +54,17 @@ const state = {
 // ─── Socket ───
 const socket = io();
 
+// ─── QR Code Generator ───
+function renderQR(code) {
+  const container = document.getElementById('qr-code');
+  if (!container || typeof qrcode === 'undefined') return;
+  const joinUrl = `${location.origin}/?join=${encodeURIComponent(code)}`;
+  const qr = qrcode(0, 'M');
+  qr.addData(joinUrl);
+  qr.make();
+  container.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+}
+
 // ─── DOM Helpers ───
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -81,6 +92,22 @@ function init() {
   setupEventListeners();
   setupSocketHandlers();
   initHomeParticles();
+  handleQRJoin();
+}
+
+// ─── Auto-join from QR code URL ───
+function handleQRJoin() {
+  const params = new URLSearchParams(window.location.search);
+  const joinCode = params.get('join');
+  if (joinCode) {
+    state.mode = 'join';
+    $('#join-code-group').classList.remove('hidden');
+    $('#input-code').value = joinCode.toUpperCase();
+    showScreen('setup');
+    $('#input-name').focus();
+    // Clean URL without reloading
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 }
 
 // ─── Avatar Grid ───
@@ -275,6 +302,7 @@ function setupSocketHandlers() {
     state.myScore = 0;
 
     $('#room-code').textContent = code;
+    renderQR(code);
     renderPlayers(players);
     showHostControls(true);
     renderGameSelector('game-selector');
@@ -292,6 +320,7 @@ function setupSocketHandlers() {
     state.myScore = 0;
 
     $('#room-code').textContent = code;
+    renderQR(code);
     renderPlayers(players);
     showHostControls(false);
     showScreen('lobby');

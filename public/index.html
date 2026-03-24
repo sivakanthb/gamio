@@ -7,6 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
 <body>
   <div id="app">
@@ -204,6 +205,8 @@
               <span id="room-code" class="room-code"></span>
               <button id="btn-copy" class="btn-copy" title="Copy code">📋</button>
             </div>
+            <div id="qr-code" class="qr-code-wrap"></div>
+            <span class="qr-hint">or scan to join</span>
           </div>
         </div>
         <div class="players-section">
